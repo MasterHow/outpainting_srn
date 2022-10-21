@@ -10,6 +10,7 @@ from net.ops import Margin
 import time
 import glob
 
+
 os.environ['CUDA_VISIBLE_DEVICES']=str(np.argmax([int(x.split()[2]) for x in subprocess.Popen(
         "nvidia-smi -q -d Memory | grep -A4 GPU | grep Free", shell=True, stdout=subprocess.PIPE).stdout.readlines()]
         ))
@@ -17,35 +18,47 @@ os.environ['CUDA_VISIBLE_DEVICES']=str(np.argmax([int(x.split()[2]) for x in sub
 
 def generate_mask(im_shapes, mask_shapes, rand=True):
     mask = np.zeros((im_shapes[0], im_shapes[1])).astype(np.float32)
+
     if rand:
         of0 = np.random.randint(0, im_shapes[0]-mask_shapes[0])
         of1 = np.random.randint(0, im_shapes[1]-mask_shapes[1])
     else:
-        if im_shapes[1] == 512 or im_shapes[1] == 1024:
-            of0 = 0
-            of1 = (im_shapes[1] - mask_shapes[1]) // 2
-        elif im_shapes[1] == 128:
-            of0 = 0
-            of1 = 0
-        else:
-            of0 = (im_shapes[0]-mask_shapes[0])//2
-            of1 = (im_shapes[1]-mask_shapes[1])//2
+        # if im_shapes[1] == 512 or im_shapes[1] == 1024:
+        #     of0 = 0
+        #     of1 = (im_shapes[1] - mask_shapes[1]) // 2
+        # elif im_shapes[1] == 128:
+        #     of0 = 0
+        #     of1 = 0
+        # else:
+        of0 = (im_shapes[0]-mask_shapes[0])//2
+        of1 = (im_shapes[1]-mask_shapes[1])//2
+
     mask[of0:of0+mask_shapes[0], of1:of1+mask_shapes[1]] = 1
     mask = np.expand_dims(mask, axis=2)
     margin = Margin(top=of0, left=of1, bottom=im_shapes[0]-mask_shapes[0]-of0,
                     right=im_shapes[1]-mask_shapes[1]-of1)
     return mask, margin
 
+
 config = TestOptions().parse()
 
 if os.path.isfile(config.dataset_path):
     pathfile = open(config.dataset_path, 'rt').read().splitlines()
+
 elif os.path.isdir(config.dataset_path):
-    # 读取源文件，png格式
-    pathfile = glob.glob(os.path.join(config.dataset_path, '*.png'))
+    # # 读取源文件，png格式
+    # pathfile = glob.glob(os.path.join(config.dataset_path, '*.png'))
+
+    # 读取源文件，jpg格式
+    pathfile = glob.glob(os.path.join(config.dataset_path, '*.jpg'))
+    # 读取mask文件，png格式
+    # maskfile = glob.glob(os.path.join(config.dataset_path, '*_mask.png'))
+    maskfile = glob.glob(os.path.join(config.mask_path, '*_mask.png'))
+
 else:
     print('Invalid testing data file/folder path.')
     exit(1)
+
 total_number = len(pathfile)
 test_num = total_number if config.test_num == -1 else min(total_number, config.test_num)
 print('The total number of testing images is {}, and we take {} for test.'.format(total_number, test_num))
@@ -88,8 +101,15 @@ with tf.Session(config=sess_config) as sess:
     for i in range(test_num):
         # 随机生成的mask，当然也可以用我的mask
         mask, margin = generate_mask(config.img_shapes, config.mask_shapes, config.random_mask)
-
         config.margin = margin
+
+        # 读取mask文件，png格式，单通道, mask：1为输入，0为待补全
+        # mask = cv2.imread(maskfile[i])[:, :, 0]
+        # mask = -mask[:, :, np.newaxis]
+        # mask = 1 - mask
+        # margin = Margin(top=0, left=0, bottom=0, right=0)
+        # # margin = Margin(top=64, left=128, bottom=64, right=128)
+
         image = cv2.imread(pathfile[i])
 
         if config.random_crop is False:

@@ -11,7 +11,9 @@ class TestOptions:
         # experiment specifics
         self.parser.add_argument('--dataset', type=str, default='paris_streetview',
                                  help='dataset of the experiment. It decides where to store samples and models')
-        self.parser.add_argument('--data_file', type=str, default='', help='the file storing testing file paths')
+        self.parser.add_argument('--data_file', type=str, default='', help='the file storing testing file paths')   # 测试的源文件地址
+        self.parser.add_argument('--mask_file', type=str, default='',
+                                 help='the file storing testing mask file paths')  # 测试的mask文件地址
         self.parser.add_argument('--test_dir', type=str, default='./test_results', help='models are saved here')
         self.parser.add_argument('--load_model_dir', type=str, default='./checkpoints', help='pretrained models are given here')
         self.parser.add_argument('--model_prefix', type=str, default='snap', help='models are saved here')
@@ -20,7 +22,7 @@ class TestOptions:
         # input/output sizes
 
         # for setting inputs
-        self.parser.add_argument('--model', type=str, default='srn')
+        self.parser.add_argument('--model', type=str, default='srn')    # srn-hr srn
         self.parser.add_argument('--random_crop', type=int, default=1,
                                  help='using random crop to process input image when '
                                       'the required size is smaller than the given size')
@@ -35,7 +37,7 @@ class TestOptions:
                                  help='given shape parameters: h,w,c or h,w')
         self.parser.add_argument('--mask_shapes', type=str, default='128,128',
                                  help='given mask parameters: h,w')
-        self.parser.add_argument('--test_num', type=int, default=-1)
+        self.parser.add_argument('--test_num', type=int, default=-1)    # -1就是全都用
         self.parser.add_argument('--fa_alpha', type=float, default=0.5)
 
         # for generator
@@ -50,6 +52,7 @@ class TestOptions:
         self.opt = self.parser.parse_args()
 
         self.opt.dataset_path = self.opt.data_file
+        self.opt.mask_path = self.opt.mask_file
 
         if os.path.exists(self.opt.test_dir) is False:
             os.mkdir(self.opt.test_dir)
